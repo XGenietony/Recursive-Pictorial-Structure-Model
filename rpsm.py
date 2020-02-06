@@ -272,7 +272,7 @@ def rpsm(volumes_pred, keypoints_3d_pred, keypoints_3d_gt, coord_volumes_pred):
     
     for k in range(rec_depth):
         grids = []
-        tolerance = 0.1*np.multiply(np.sqrt(2), grid_size)
+        tolerance = np.multiply(np.sqrt(2), grid_size)
 
         for i in range(njoints):
             grids.append(compute_grid(grid_size, pose3d[i], nbins, device=device))
@@ -309,6 +309,25 @@ if __name__=='__main__':
         mpjpe_pose = (np.sqrt(np.sum(((keypoints_3d_gt) - (keypoints_3d_pred))**2, axis=1)))
         mpjpe_null.append(np.sqrt(np.sum(((pose3d) - (keypoints_3d_pred))**2, axis=1)))
 
+        body = HumanBody()
+        skeleton = body.skeleton
+        limb_length_pose = compute_limb_length(pose3d, skeleton)
+        limb_length_pred = compute_limb_length(keypoints_3d_pred, skeleton)
+        limb_length_gt = compute_limb_length(keypoints_3d_gt, skeleton)
+
+        count = 0
+        comp_length_pose = np.zeros((16,), dtype=np.float16)
+        comp_length_pred = np.zeros((16,), dtype=np.float16)
+        for node in skeleton:
+            current = node['idx']
+            children = node['children']
+            for child in children:
+                comp_length_pose[count] = np.abs(limb_length_pose[(current, child)] - limb_length_gt[(current, child)])
+                comp_length_pred[count] = np.abs(limb_length_pred[(current, child)] - limb_length_gt[(current, child)])
+                count = count + 1
+        comp_length_pose = np.mean(comp_length_pose)
+        comp_length_pred = np.mean(comp_length_pred)
+
         mpjpe1 = np.mean(np.sqrt(np.sum(((keypoints_3d_gt - keypoints_3d_gt[6]) - (pose3d-pose3d[6]))**2, axis=1)))
         mpjpe2 = np.mean(np.sqrt(np.sum(((keypoints_3d_gt - keypoints_3d_gt[6]) - (keypoints_3d_pred-keypoints_3d_pred[6]))**2, axis=1)))
 
@@ -318,7 +337,7 @@ if __name__=='__main__':
         mpjpe5 = np.mean(np.sqrt(np.sum((keypoints_3d_gt - pose3d)**2, axis=1)))
         mpjpe6 = np.mean(np.sqrt(np.sum((keypoints_3d_gt - keypoints_3d_pred)**2, axis=1)))
         
-        print(mpjpe1, mpjpe2, '          ', mpjpe3, mpjpe4, '          ', mpjpe5, mpjpe6)
+        print(comp_length_pose, comp_length_pred, '                ', mpjpe1, mpjpe2, '          ', mpjpe3, mpjpe4, '          ', mpjpe5, mpjpe6)
         
         # body = HumanBody()
         # skeleton = body.skeleton
