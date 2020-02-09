@@ -47,7 +47,7 @@ class HumanBody(object):
             cur = queue[0]
             for child in cur['children']:
                 skeleton[child]['parent'] = cur['idx']
-                level[child] = level[cur['idx']] + 1
+                level[child] = level[cur['idx']] - 1
                 queue.append(skeleton[child])
             del queue[0]
 
